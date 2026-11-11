@@ -111,8 +111,9 @@ export class JobRunner {
     if (s.online && s.paused !== 'running') await dev.resume();
   }
 
-  async waitIdle(label) {
+  async waitIdle(label, firstDelay = 0, poll = null) {
     let offline = 0;
+    if (firstDelay > 0) await sleep(firstDelay);
     for (;;) {
       const s = await dev.getStatus();
       if (s.online) {
@@ -126,7 +127,7 @@ export class JobRunner {
       }
       if (label && offline === 0 && this.state === 'running') { this.message = label; }
       this.emit();
-      await sleep(this.opts.pollMs);
+      await sleep(poll || this.opts.pollMs);
     }
   }
 
@@ -199,9 +200,11 @@ export class JobRunner {
         continue;
       }
       this.setState(this.stopRequested ? 'stopping' : (this.userPaused ? 'paused' : 'running'), this.stopRequested ? this.message : (this.userPaused ? 'Pausiert' : 'Zeichnet…'));
-      await this.waitIdle();
+      // Erst kurz vor dem erwarteten Ende nachfragen, dann in kurzen Abständen
+      const expect = c.time * this.ratio * 1000;
+      await this.waitIdle(null, Math.min(8000, Math.max(0, expect * 0.5 - 300)), 300);
       const took = (Date.now() - this.chunkStart) / 1000;
-      if (c.time > 3 && !this.userPaused) this.ratio = this.ratio * 0.8 + Math.max(0.3, Math.min(4, took / c.time)) * 0.2;
+      if (c.time > 3 && !this.userPaused) { const w = this.chunks <= 3 ? 0.5 : 0.2; this.ratio = this.ratio * (1 - w) + Math.max(0.05, Math.min(4, took / c.time)) * w; }
       this.current = null;
       this.st = c.stateAfter;
       this.i = c.to;
