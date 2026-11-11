@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+
+android {
+    namespace 'de.tobiwald.scribitmobile'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'de.tobiwald.scribitmobile'
+        minSdk 24
+        targetSdk 34
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+    }
+
+    signingConfigs {
+        // Fester Schlüssel, damit neue Versionen sich über alte installieren lassen.
+        shared {
+            storeFile file('scribit-mobile.jks')
+            storeType 'pkcs12'
+            storePassword 'scribitmobile'
+            keyAlias 'scribit'
+            keyPassword 'scribitmobile'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+        debug {
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

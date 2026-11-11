@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="color-scheme" content="light">
+<title>Scribit Mobile</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 4 L16 19 L29 4" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="16" width="10" height="10" rx="3" fill="currentColor"/><path d="M8 29 Q 16 23 24 29" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span>Scribit Mobile</span>
+  </div>
+  <button id="connChip" class="conn off" type="button"><span class="dot"></span><span class="lbl">Nicht verbunden</span></button>
+</header>
+
+<main>
+  <!-- MOTIV -->
+  <section id="tab-motiv" class="tab active">
+    <div class="pad">
+      <div class="import">
+        <button class="btn primary" id="btnOpenSvg" type="button">SVG öffnen</button>
+        <button class="btn" id="btnOpenImg" type="button">Bild umwandeln</button>
+        <button class="btn" id="btnCamImg" type="button">Foto machen</button>
+      </div>
+      <div class="design-card">
+        <canvas id="designThumb" class="thumb"></canvas>
+        <div class="design-meta">
+          <div id="designName" class="design-name">Noch kein Motiv</div>
+          <div id="designInfo" class="muted">Öffne eine SVG, wandle ein Foto um oder nimm ein Beispiel.</div>
+        </div>
+      </div>
+      <div id="warnings"></div>
+
+      <section class="panel" id="traceBox" hidden>
+        <h3>Bild in Linien umwandeln</h3>
+        <div class="seg" id="traceMode">
+          <button data-v="outline" type="button">Linien</button>
+          <button data-v="hatch" type="button">Schraffur</button>
+          <button data-v="color" type="button">Farben</button>
+        </div>
+        <p class="hint" id="traceModeHint"></p>
+        <div class="sliders" id="traceSliders"></div>
+        <div class="toggles" id="traceToggles"></div>
+      </section>
+
+      <section class="panel" id="colorBox" hidden>
+        <h3>Farben auf Stifte verteilen</h3>
+        <p class="hint">Jede Farbe im Motiv bekommt einen Stiftplatz. Ähnliche Farben werden automatisch zugeordnet.</p>
+        <div id="colorList" class="color-list"></div>
+      </section>
+
+      <section class="panel" id="drawWhatBox" hidden>
+        <h3>Was gezeichnet wird</h3>
+        <div class="toggles" id="planToggles"></div>
+        <div class="sliders" id="planSliders"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Beispiele</h3>
+        <div class="samples" id="samples"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- WAND -->
+  <section id="tab-wand" class="tab">
+    <div class="wall-wrap">
+      <canvas id="wallCanvas"></canvas>
+      <div class="wall-tools">
+        <button class="icon-btn" id="btnFitView" type="button" title="Ganze Wand">⤢</button>
+        <button class="icon-btn" id="btnTravel" type="button" title="Leerfahrten zeigen"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 18 C 8 6, 16 18, 20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/></svg></button>
+      </div>
+    </div>
+    <div class="sheet">
+      <div class="wall-legend" id="wallLegend"></div>
+      <div class="field-row">
+        <label class="f"><span>Breite</span><input type="number" id="plW" inputmode="decimal" step="10"><em>mm</em></label>
+        <label class="f"><span>Höhe</span><input type="number" id="plH" inputmode="decimal" step="10"><em>mm</em></label>
+        <label class="f"><span>Drehung</span><input type="number" id="plR" inputmode="decimal" step="5"><em>°</em></label>
+      </div>
+      <div class="field-row">
+        <label class="f"><span>Mitte X</span><input type="number" id="plX" inputmode="decimal" step="10"><em>mm</em></label>
+        <label class="f"><span>Mitte Y</span><input type="number" id="plY" inputmode="decimal" step="10"><em>mm</em></label>
+        <label class="f check"><input type="checkbox" id="plRotGesture"><span>Mit 2 Fingern drehen</span></label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btnCenterRobot" type="button">Auf Roboter zentrieren</button>
+        <button class="btn" id="btnFitArea" type="button">Größtmöglich</button>
+        <button class="btn" id="btnFlip" type="button">Spiegeln</button>
+      </div>
+      <div class="sim">
+        <button class="icon-btn" id="btnSim" type="button" title="Ablauf abspielen">▶</button>
+        <input type="range" id="simRange" min="0" max="1000" value="1000">
+        <span id="simLabel" class="muted">Ablauf</span>
+      </div>
+      <div id="planStats" class="stats"></div>
+    </div>
+  </section>
+
+  <!-- AR -->
+  <section id="tab-ar" class="tab">
+    <div class="ar">
+      <div class="ar-stage">
+        <video playsinline muted hidden></video>
+        <img alt="" hidden>
+        <canvas></canvas>
+        <div class="ar-empty" id="arEmpty">
+          <p>Sieh dir das Motiv direkt an deiner Wand an.</p>
+          <p class="muted">Kamera starten oder ein Foto der Wand laden, dann die zwei Aufhängepunkte antippen. Danach kannst du das Motiv im Bild verschieben und mit zwei Fingern skalieren.</p>
+        </div>
+      </div>
+      <div class="ar-hint"></div>
+      <div class="ar-bar">
+        <button class="btn" id="arCam" type="button">Kamera</button>
+        <button class="btn primary" id="arShot" type="button" hidden>Foto aufnehmen</button>
+        <button class="btn" id="arLoad" type="button">Foto laden</button>
+        <button class="btn" id="arRedo" type="button" hidden>Punkte neu setzen</button>
+        <button class="btn" id="arSkip" type="button" hidden>Überspringen</button>
+      </div>
+      <div class="ar-bar small">
+        <label class="f range"><span>Deckkraft</span><input type="range" id="arOpacity" min="10" max="100" value="90"></label>
+        <span id="arSize" class="muted"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZEICHNEN -->
+  <section id="tab-draw" class="tab">
+    <div class="pad">
+      <div class="design-card">
+        <canvas id="drawThumb" class="thumb"></canvas>
+        <div class="design-meta">
+          <div id="drawTitle" class="design-name">Kein Motiv</div>
+          <div id="drawFacts" class="muted"></div>
+        </div>
+      </div>
+
+      <section class="panel" id="penCheck">
+        <h3>Stifte einsetzen</h3>
+        <div id="penNeeded" class="pen-needed"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Vor dem Start</h3>
+        <label class="check-line"><input type="checkbox" id="chkGeom"><span id="chkGeomText">Wandmaße stimmen</span></label>
+        <label class="check-line"><input type="checkbox" id="chkPens"><span>Stifte sind wie oben eingesetzt, Kappen ab</span></label>
+        <label class="check-line"><input type="checkbox" id="optHome" checked><span>Stiftmechanik vor dem Start kalibrieren (empfohlen)</span></label>
+        <label class="check-line"><input type="checkbox" id="optReturn" checked><span>Am Ende zurück zur Startposition</span></label>
+        <div class="btn-row">
+          <button class="btn" id="btnFrame" type="button">Rahmen abfahren</button>
+          <button class="btn" id="btnExport" type="button">G-Code speichern</button>
+        </div>
+      </section>
+
+      <button class="btn big primary" id="btnStart" type="button">Zeichnen starten</button>
+
+      <section class="panel job" id="jobPanel" hidden>
+        <div class="job-head">
+          <div id="jobState" class="job-state">Läuft</div>
+          <div id="jobPct" class="job-pct">0 %</div>
+        </div>
+        <div class="bar"><div id="jobBar"></div></div>
+        <div id="jobFacts" class="job-facts"></div>
+        <canvas id="jobCanvas" class="job-canvas"></canvas>
+        <div class="btn-row">
+          <button class="btn" id="btnPause" type="button">Pause</button>
+          <button class="btn danger" id="btnStop" type="button">Stopp</button>
+        </div>
+      </section>
+
+      <details class="log-box">
+        <summary>Protokoll</summary>
+        <pre id="log"></pre>
+      </details>
+    </div>
+  </section>
+
+  <!-- GERÄT -->
+  <section id="tab-device" class="tab">
+    <div class="pad">
+      <section class="panel">
+        <h3>Verbindung</h3>
+        <div id="connInfo" class="conn-info">Suche Roboter…</div>
+        <p class="hint">Handy mit dem WLAN <b>ScribIt-XXXXXX</b> verbinden (offen oder Passwort <b>ScribItAP314</b>). Die Meldung „Kein Internet“ ist normal, einfach verbunden bleiben.</p>
+        <div class="field-row">
+          <label class="f grow"><span>Adresse</span><input type="text" id="connHost" autocomplete="off"></label>
+          <label class="f"><span>Port</span><input type="number" id="connPort" inputmode="numeric"></label>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="btnWifi" type="button">WLAN-Einstellungen</button>
+          <button class="btn" id="btnReconnect" type="button">Neu verbinden</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>Wand vermessen</h3>
+        <svg class="geo-diagram" viewBox="0 0 320 150" aria-hidden="true">
+          <line x1="20" y1="20" x2="300" y2="20" stroke="currentColor" stroke-dasharray="5 4" opacity=".5"/>
+          <circle cx="20" cy="20" r="5" fill="currentColor"/><circle cx="300" cy="20" r="5" fill="currentColor"/>
+          <line id="geoL" x1="20" y1="20" x2="160" y2="110" stroke="#8a7f6a" stroke-width="2"/>
+          <line id="geoR" x1="300" y1="20" x2="160" y2="110" stroke="#8a7f6a" stroke-width="2"/>
+          <rect id="geoBot" x="148" y="104" width="24" height="24" rx="6" fill="currentColor"/>
+          <text x="160" y="14" text-anchor="middle" font-size="11" fill="currentColor">Abstand A</text>
+          <text id="geoLt" x="70" y="78" font-size="11" fill="currentColor">L</text>
+          <text id="geoRt" x="240" y="78" font-size="11" fill="currentColor">R</text>
+        </svg>
+        <div class="field-row">
+          <label class="f"><span>Abstand A</span><input type="number" id="gA" inputmode="decimal"><em>mm</em></label>
+          <label class="f"><span>Faden links</span><input type="number" id="gL" inputmode="decimal"><em>mm</em></label>
+          <label class="f"><span>Faden rechts</span><input type="number" id="gR" inputmode="decimal"><em>mm</em></label>
+        </div>
+        <p class="hint">Gemessen wird von der Aufhängung bis zum Faden-Austritt am Roboter. Statt der Fäden kannst du auch die Position der Stiftspitze messen:</p>
+        <div class="field-row">
+          <label class="f"><span>von links</span><input type="number" id="gX" inputmode="decimal"><em>mm</em></label>
+          <label class="f"><span>unter Ankerlinie</span><input type="number" id="gY" inputmode="decimal"><em>mm</em></label>
+          <button class="btn" id="btnPosApply" type="button">Übernehmen</button>
+        </div>
+        <div id="geoInfo" class="muted"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Roboter bewegen</h3>
+        <div class="jog">
+          <div class="seg" id="jogStep">
+            <button data-v="1" type="button">1</button><button data-v="10" type="button">10</button><button data-v="50" type="button">50</button><button data-v="100" type="button">100 mm</button>
+          </div>
+          <div class="pad-grid">
+            <span></span><button class="btn jog-btn" data-d="0,-1" type="button">▲</button><span></span>
+            <button class="btn jog-btn" data-d="-1,0" type="button">◀</button><button class="btn jog-btn" id="btnJogCenter" type="button" title="Zur Wandmitte">◎</button><button class="btn jog-btn" data-d="1,0" type="button">▶</button>
+            <span></span><button class="btn jog-btn" data-d="0,1" type="button">▼</button><span></span>
+          </div>
+          <p class="hint">Die App rechnet die Fadenlängen beim Bewegen automatisch mit. Wenn du den Roboter von Hand verschoben hast, oben neu messen.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>Stifte</h3>
+        <div id="penSlots" class="pen-slots"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="btnHomePen" type="button">Stiftmechanik kalibrieren</button>
+          <button class="btn" id="btnNextPen" type="button">Nächster Stift</button>
+          <button class="btn" id="btnTestPen" type="button">Stift kurz absenken</button>
+        </div>
+        <p class="hint" id="penState"></p>
+        <details>
+          <summary>Mehr als 4 Farben (Stifte unterwegs tauschen)</summary>
+          <p class="hint">Zusätzliche Farben werden zum Schluss gezeichnet. Die App hält dann an und sagt dir, welchen Stift du in welchen Platz stecken sollst.</p>
+          <div id="extraColors" class="extra-colors"></div>
+          <div class="btn-row">
+            <button class="btn" id="btnAddExtra" type="button">Tauschfarbe hinzufügen</button>
+            <label class="f"><span>Tausch in Platz</span><select id="swapSlot"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option></select></label>
+          </div>
+        </details>
+        <details>
+          <summary>Zylinder frei drehen</summary>
+          <p class="hint">Gegen den Uhrzeigersinn ist sicher. Im Uhrzeigersinn kann die Absenk-Mechanik einrasten. 72° = ein Stiftplatz, 30° = runter/hoch.</p>
+          <div class="field-row">
+            <button class="btn" id="btnRotCcw" type="button">↺</button>
+            <label class="f"><span>Grad</span><input type="number" id="rotDeg" value="72" inputmode="decimal"></label>
+            <button class="btn" id="btnRotCw" type="button">↻</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h3>Maßhaltigkeit kalibrieren</h3>
+        <p class="hint">Zeichnet ein Quadrat mit Kreuz an der aktuellen Position. Miss danach Breite und Höhe nach, die App korrigiert alle folgenden Zeichnungen.</p>
+        <div class="field-row">
+          <label class="f"><span>Quadrat</span><input type="number" id="tqSize" value="200" inputmode="decimal"><em>mm</em></label>
+          <button class="btn" id="btnTestSquare" type="button">Testquadrat zeichnen</button>
+        </div>
+        <div class="field-row">
+          <label class="f"><span>gemessen breit</span><input type="number" id="tqW" inputmode="decimal"><em>mm</em></label>
+          <label class="f"><span>gemessen hoch</span><input type="number" id="tqH" inputmode="decimal"><em>mm</em></label>
+          <button class="btn" id="btnTqApply" type="button">Korrektur übernehmen</button>
+        </div>
+        <div id="kInfo" class="muted"></div>
+        <div class="toggles" id="geoToggles"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Erweitert</h3>
+        <div class="sliders" id="advSliders"></div>
+        <div class="field-row">
+          <label class="f grow"><span>Übertragung</span>
+            <select id="budget">
+              <option value="1300">Sicher (kleine Pakete)</option>
+              <option value="4000">Schneller (4 KB)</option>
+              <option value="16000">Große Pakete (16 KB)</option>
+              <option value="60000">Wie Unbrickit (eine Datei, max. 60 KB)</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">Die Firmware liest Uploads ohne auf weitere Daten zu warten und kann nur bis 64 KB zählen. Kleine Pakete kommen zuverlässig an, die App prüft jedes Paket nach.</p>
+      </section>
+
+      <section class="panel">
+        <h3>G-Code direkt senden</h3>
+        <textarea id="gcodeIn" rows="5" placeholder="G91&#10;G1 X10 Y-10 F1000"></textarea>
+        <div class="btn-row">
+          <button class="btn" id="btnSendG" type="button">Senden</button>
+          <button class="btn" id="btnResetAll" type="button">Alle Einstellungen zurücksetzen</button>
+        </div>
+      </section>
+
+      <p class="about muted">Scribit Mobile <span id="appVer"></span>. Spricht die lokale HTTP-Schnittstelle der Unbrickit-Firmware (github.com/karimi/unbrickit). Firmware flashen geht weiterhin nur mit Unbrickit am PC.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button data-tab="motiv" class="active" type="button"><svg viewBox="0 0 24 24"><path d="M4 18c3-8 6 2 9-6s5-2 7-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg><span>Motiv</span></button>
+  <button data-tab="wand" type="button"><svg viewBox="0 0 24 24"><path d="M3 4h18M3 4l9 9 9-9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="12" width="6" height="6" rx="2" fill="currentColor"/></svg><span>Wand</span></button>
+  <button data-tab="ar" type="button"><svg viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 15l3-5 2 3 1-1 2 3z" fill="currentColor"/></svg><span>AR</span></button>
+  <button data-tab="draw" type="button"><svg viewBox="0 0 24 24"><path d="M5 19l3-1 10-10-2-2L6 16z" fill="currentColor"/><path d="M14 6l2 2" stroke="#fff" stroke-width="1.5"/></svg><span>Zeichnen</span></button>
+  <button data-tab="device" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="2"/></svg><span>Gerät</span></button>
+</nav>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="btn-row" id="modalBtns"></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<input type="file" id="fileSvg" accept=".svg,image/svg+xml" hidden>
+<input type="file" id="fileImg" accept="image/*" hidden>
+<input type="file" id="fileAr" accept="image/*" hidden>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
